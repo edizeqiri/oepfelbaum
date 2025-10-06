@@ -1,4 +1,4 @@
-package com.edizeqiri
+package com.edizeqiri.repository
 
 interface LoanRepository<T> {
 
