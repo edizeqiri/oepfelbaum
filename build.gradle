@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "2.2.20"
     id "org.jetbrains.kotlin.plugin.allopen" version "2.2.20"
+    id("org.openapi.generator") version "7.0.1"
     id 'io.quarkus'
 }
 
@@ -46,3 +47,34 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions.jvmTarget = JavaVersion.VERSION_21
 }
+
+openApiGenerate {
+    generatorName = "kotlin"
+    inputSpec = "$rootDir/src/main/openapi/loan-service.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = "com.edizeqiri.api"
+    modelPackage = "com.edizeqiri.dto"
+
+    globalProperties = [
+            models: "",
+            apis: "false",
+            supportingFiles: "false"
+    ]
+
+    configOptions = [
+            dateLibrary: "java8",
+            serializationLibrary: "jackson",
+            enumPropertyNaming: "UPPERCASE",
+            sourceFolder: "src/main/kotlin"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "$buildDir/generated/src/main/kotlin"
+        }
+    }
+}
+
+compileKotlin.dependsOn tasks.openApiGenerate
