@@ -3,7 +3,7 @@ package com.edizeqiri.entity
 data class FinancingObject(
 
     val id: Long,
-    val owner: Owner,
+    val owner: List<Owner>,
     val limit: Long,
     val products: List<Long>,
     val status: Status
