@@ -1,6 +1,5 @@
 package com.edizeqiri
 
-interface LoanRepository {
-
+interface LoanRepository<T> {
 
 }
