@@ -1,0 +1,5 @@
+flowchart TD
+    A[LoanClient] -->|GET /service/v1/loansByUser/userId| B(LoanResource)
+    B --> C(LoanService)
+    C --> D(LoanRepository)
+    E(JSONLoanRepository) -->|Implements| D
