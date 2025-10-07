@@ -24,9 +24,8 @@ class FinancingObjectJsonRepository(
         data = mapper.readValue(json)
     }
 
-    //TODO: get all objects
-    override fun findAllByUserId(userId: String): List<FinancingObject> {
-        return data.filter { it.owners.first().id.toString() == userId }
+    override fun findAllByUserId(userId: String): FinancingObject {
+        return data.first { it.owners.first().id.toString() == userId }
     }
 
 }

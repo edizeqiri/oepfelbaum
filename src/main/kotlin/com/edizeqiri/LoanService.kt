@@ -6,6 +6,7 @@ import com.edizeqiri.entity.*
 import com.edizeqiri.repository.financing.FinancingObjectRepository
 import com.edizeqiri.repository.limit.LimitRepository
 import com.edizeqiri.repository.product.ProductRepository
+import io.quarkus.logging.Log
 import jakarta.enterprise.context.ApplicationScoped
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
@@ -21,61 +22,60 @@ class LoanService(
 ) {
 
     fun getAllLoansByUser(userId: String): List<Loan> {
-        val financingObjects: List<FinancingObject> = financingObjectRepository.findAllByUserId(userId)
+        var financingObject: FinancingObject = try {
+            financingObjectRepository.findAllByUserId(userId)
+        } catch (e: NoSuchElementException) {
+            Log.error("No user with the specified ID: $userId, $e")
+            throw e
+        }
         var loans = mutableListOf<Loan>()
+        val products = productJsonRepository.findAllById(financingObject.products)
+        val limit = limitRepository.findById(financingObject.limit)
 
-        //parent
-        financingObjects.forEach { financingObject ->
+        val collateral =
+            LoanCollateralInner(
+                type = limit.toCollateralInnerType(),
+                currentValue = limit.realSecurities.first().collateralValue.toString(),
+                currencyCode = limit.realSecurities.first().currency.toString(),
+                specification = limit.realSecurities.first().address,
+                nextRevaluationDate = limit.realSecurities.first().nextRevaluationDate,
+            )
 
-            val products = productJsonRepository.findAllById(financingObject.products)
-            val limit = limitRepository.findById(financingObject.limit)
+        var earliest = LocalDate.MAX
+        var latest = LocalDate.MIN
+        var isOverdue = false
 
-            val collateral =
-                LoanCollateralInner(
-                    type = limit.toCollateralInnerType(),
-                    currentValue = limit.realSecurities.first().collateralValue.toString(),
-                    currencyCode = limit.realSecurities.first().currency.toString(),
-                    specification = limit.realSecurities.first().address,
-                    nextRevaluationDate = limit.realSecurities.first().nextRevaluationDate,
-                )
+        // children
+        products.forEach { product ->
 
-            var earliest = LocalDate.MAX
-            var latest = LocalDate.MIN
-            var isOverdue = false
+            // earliest, latest
+            if (product.startDate < earliest) earliest = product.startDate
+            product.endDate?.let { if (it > latest) latest = it }
 
-            // children
-            products.forEach { product ->
-
-                // earliest, latest
-                if (product.startDate < earliest) earliest = product.startDate
-                product.endDate?.let { if (it > latest) latest = it }
-
-                // isOverdue
-                isOverdue = isOverdue.or(product.isOverdue)
+            // isOverdue
+            isOverdue = isOverdue.or(product.isOverdue)
 
 
-                loans.add(createLoan(financingObject, product, limit, collateral))
-            }
+            loans.add(createLoan(financingObject, product, limit, collateral))
+        }
 
-            // add parent to list
-            loans.add(
-                Loan(
-                    id = createUUID(financingObject, false, null).toString(),
-                    loanType = Loan.LoanType.PARENT_LOAN,
-                    outstandingAmount = productJsonRepository.sum(financingObject.products).toString(),
-                    startDate = earliest.atStartOfDay().atOffset(ZoneOffset.UTC),
-                    endDate = if (latest == LocalDate.MAX) null else latest.atStartOfDay().atOffset(ZoneOffset.UTC),
-                    isOverdue = isOverdue,
-                    paymentFrequency = limit.agreedAmortisationFrequency.toString(),
-                    collateral = listOf(
-                        collateral.copy(amortisationPaymentAmount = (limit.amortisationAmountAnnual / limit.agreedAmortisationFrequency).toString())
-                    )
+        // add parent to list
+        loans.add(
+            Loan(
+                id = createUUID(financingObject, false, null).toString(),
+                loanType = Loan.LoanType.PARENT_LOAN,
+                outstandingAmount = productJsonRepository.sum(financingObject.products).toString(),
+                startDate = earliest.atStartOfDay().atOffset(ZoneOffset.UTC),
+                endDate = if (latest == LocalDate.MAX) null else latest.atStartOfDay().atOffset(ZoneOffset.UTC),
+                isOverdue = isOverdue,
+                paymentFrequency = limit.agreedAmortisationFrequency.toString(),
+                collateral = listOf(
+                    collateral.copy(amortisationPaymentAmount = (limit.amortisationAmountAnnual / limit.agreedAmortisationFrequency).toString())
                 )
             )
-        }
+        )
         return loans
     }
-
 
     private fun createLoan(
         financingObject: FinancingObject,
@@ -108,5 +108,4 @@ class LoanService(
         if (child) encoding += "|${productId ?: ""}"
         return UUID.nameUUIDFromBytes(encoding.toByteArray(StandardCharsets.UTF_8))
     }
-
 }

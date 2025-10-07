@@ -4,5 +4,5 @@ import com.edizeqiri.entity.FinancingObject
 
 interface FinancingObjectRepository {
 
-    fun findAllByUserId(userId: String): List<FinancingObject>
+    fun findAllByUserId(userId: String): FinancingObject
 }

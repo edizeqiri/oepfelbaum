@@ -1,2 +1,2 @@
 ###
-GET http://localhost:8080/service/v1/loansByUser/11110015
+GET http://localhost:8080/service/v1/loansByUser/100006
