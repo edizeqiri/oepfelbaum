@@ -20,6 +20,7 @@ data class Owner(
 enum class Status() {
     @JsonProperty("inactive")
     INACTIVE,
+
     @JsonProperty("active")
     ACTIVE
 }

@@ -52,7 +52,6 @@ class LoanService(
             var earliest = LocalDate.MAX
             var latest = LocalDate.MIN
             var isOverdue = false
-            var earliestInterestDue = LocalDate.MIN
 
             // children
             products.forEach { product ->

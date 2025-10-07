@@ -44,19 +44,27 @@ class LoanResourceTest {
             .then()
             .statusCode(200)
             .body("size()", equalTo(numberOfLoans))
+
     }
 
     @ParameterizedTest
     @CsvSource(
-        "11110006,1940000",
-        "11110013,620000",
+        "11110006,1940000, '[700000,880000,360000]'",
+        "11110013,620000, '[620000]'",
     )
-    fun `Sum up outstanding amount of child loans in parent loan`(userId: String, expectedAmount: String) {
-
+    fun `Sum up outstanding amount of child loans in parent loan`(
+        userId: String,
+        expectedAmount: String,
+        childrenAmount: String
+    ) {
+        val childrenAmountList: List<Long> = objectMapper.readValue(childrenAmount)
         val loans: List<Loan> = sendLoanRequest(userId)
         assert(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.outstandingAmount == expectedAmount)
 
 
+        loans.zip(childrenAmountList) { loan, child ->
+            assertEquals(loan.outstandingAmount, child.toString())
+        }
     }
 
 
@@ -64,12 +72,23 @@ class LoanResourceTest {
     @CsvSource(
         "11110015, 2019-04-14T00:00Z, 2033-03-22T00:00Z"
     )
-    fun `Find lending date range based on product date ranges`(userId: String, earliest: String, latest: String,) {
+    fun `Find lending date range based on product date ranges`(
+        userId: String,
+        earliest: String,
+        latest: String
+    ) {
 
         val loans = sendLoanRequest(userId)
-        assertEquals(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.startDate.toString(), earliest, "start date failed")
-        assertEquals(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.endDate.toString(), latest, "end date failed")
-
+        assertEquals(
+            loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.startDate.toString(),
+            earliest,
+            "start date failed"
+        )
+        assertEquals(
+            loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.endDate.toString(),
+            latest,
+            "end date failed"
+        )
     }
 
     @ParameterizedTest
@@ -101,13 +120,13 @@ class LoanResourceTest {
     }
 
 
-    @ParameterizedTest
-    @CsvSource(
-
-    )
-    fun `Identify when the next interest payment is due`( ) {
-
-    }
+//    @ParameterizedTest
+//    @CsvSource(
+//
+//    )
+//    fun `Identify when the next interest payment is due`() {
+//
+//    }
 
     @ParameterizedTest
     @CsvSource(

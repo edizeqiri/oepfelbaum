@@ -1,9 +1,9 @@
 package com.edizeqiri.entity
 
 import com.edizeqiri.dto.LoanCollateralInner
+import com.fasterxml.jackson.annotation.JsonFormat
 import java.time.LocalDate
 import java.util.*
-import com.fasterxml.jackson.annotation.JsonFormat
 
 data class Limit(
     val id: Long,
@@ -16,9 +16,7 @@ data class Limit(
     val realSecurities: List<RealSecurities>
 )
 
-enum class LimitTypes {
-
-}
+enum class LimitTypes
 
 data class RealSecurities(
     val type: String,
