@@ -1,5 +1,7 @@
 package com.edizeqiri.entity
 
+import com.edizeqiri.dto.Loan
+
 data class FinancingObject(
 
     val id: Long,
@@ -14,7 +16,13 @@ data class Owner(
     val name: String
 )
 
-enum class Status {
+enum class Status() {
     INACTIVE,
     ACTIVE
 }
+
+fun Status.toLoanStatus(): Loan.LoanStatus =
+    when (this) {
+        Status.ACTIVE -> Loan.LoanStatus.ACTIVE
+        Status.INACTIVE -> Loan.LoanStatus.INACTIVE
+    }
