@@ -1,26 +1,26 @@
 package com.edizeqiri
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer
+import com.fasterxml.jackson.datatype.jsr310.ser.OffsetDateTimeSerializer
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.OffsetDateTime
 
 @ApplicationScoped
 class JacksonConfig {
 
     @Produces
     fun objectMapper(): ObjectMapper {
-        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         val javaTimeModule = JavaTimeModule().apply {
-            addDeserializer(LocalDate::class.java, LocalDateDeserializer(formatter))
+            addSerializer(OffsetDateTime::class.java, OffsetDateTimeSerializer.INSTANCE)
         }
 
         return ObjectMapper()
             .registerModule(KotlinModule.Builder().build())
             .registerModule(javaTimeModule)
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     }
 }

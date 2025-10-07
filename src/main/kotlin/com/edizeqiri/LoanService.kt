@@ -75,7 +75,7 @@ class LoanService(
                     loanType = Loan.LoanType.PARENT_LOAN,
                     outstandingAmount = productJsonRepository.sum(financingObject.products).toString(),
                     startDate = earliest.atStartOfDay().atOffset(ZoneOffset.UTC),
-                    endDate = latest.atStartOfDay().atOffset(ZoneOffset.UTC),
+                    endDate = if (latest == LocalDate.MAX) null else latest.atStartOfDay().atOffset(ZoneOffset.UTC),
                     isOverdue = isOverdue,
                     paymentFrequency = limit.agreedAmortisationFrequency.toString(),
                     collateral = listOf(

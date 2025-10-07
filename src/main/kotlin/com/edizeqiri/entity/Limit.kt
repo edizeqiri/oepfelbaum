@@ -3,6 +3,7 @@ package com.edizeqiri.entity
 import com.edizeqiri.dto.LoanCollateralInner
 import java.time.LocalDate
 import java.util.*
+import com.fasterxml.jackson.annotation.JsonFormat
 
 data class Limit(
     val id: Long,
@@ -24,6 +25,7 @@ data class RealSecurities(
     val address: String,
     val collateralValue: Long,
     val currency: Currency,
+    @JsonFormat(pattern = "dd.MM.yyyy")
     val nextRevaluationDate: LocalDate
 )
 

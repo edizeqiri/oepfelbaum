@@ -8,6 +8,7 @@ import io.quarkus.test.junit.QuarkusTest
 import io.restassured.RestAssured.given
 import jakarta.inject.Inject
 import org.hamcrest.Matchers.equalTo
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
@@ -56,16 +57,18 @@ class LoanResourceTest {
         assert(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.outstandingAmount == expectedAmount)
 
 
-
     }
-
 
 
     @ParameterizedTest
     @CsvSource(
-
+        "11110015, 2019-04-14T00:00Z, 2033-03-22T00:00Z"
     )
-    fun `Find lending date range based on product date ranges`() {
+    fun `Find lending date range based on product date ranges`(userId: String, earliest: String, latest: String,) {
+
+        val loans = sendLoanRequest(userId)
+        assertEquals(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.startDate.toString(), earliest, "start date failed")
+        assertEquals(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }.endDate.toString(), latest, "end date failed")
 
     }
 
@@ -87,11 +90,14 @@ class LoanResourceTest {
 
     @ParameterizedTest
     @CsvSource(
-
+        "11110006, 1333.3333333333333",
+        "11110015, 8000.0"
     )
-    fun `Calculate next amortisation payment amount for lending`(userId: String) {
+    fun `Calculate next amortisation payment amount for lending`(userId: String, amortisationPaymentAmount: String) {
         val loans = sendLoanRequest(userId)
-
+        assert(loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }
+            .collateral?.first()
+            ?.amortisationPaymentAmount == amortisationPaymentAmount)
     }
 
 
@@ -99,15 +105,29 @@ class LoanResourceTest {
     @CsvSource(
 
     )
-    fun `Identify when the next interest payment is due`() {
+    fun `Identify when the next interest payment is due`( ) {
 
     }
 
     @ParameterizedTest
     @CsvSource(
-
+        "11110015, '[3.75,4.25]','[1,4]'"
     )
-    fun `Show interest rate on the child loan`() {
+    fun `Show interest rate on the child loan`(userId: String, interestRates: String, interestFrequencies: String) {
+
+        val loans = sendLoanRequest(userId)
+        val parent = loans.first { it.loanType == Loan.LoanType.PARENT_LOAN }
+        assert(parent.interestRate == null)
+        assert(parent.interestPaymentFrequency == null)
+
+        val interestRatesList: List<Double> = objectMapper.readValue(interestRates)
+        val interestFrequenciesList: List<Int> = objectMapper.readValue(interestFrequencies)
+
+        interestRatesList.zip(interestFrequenciesList).zip(loans) { (rate, freq), loan ->
+            assert(loan.interestRate == rate.toString())
+            assert(loan.interestPaymentFrequency == freq.toString())
+        }
+
 
     }
 
