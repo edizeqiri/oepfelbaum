@@ -10,16 +10,15 @@ import jakarta.ws.rs.core.MediaType
 
 
 @ApplicationScoped
-@Path("/loansByUser")
-class LoanResource {
+@Path("/service/v1/loansByUser")
+class LoanResource(
+    val loanService: LoanService
+) {
 
     @GET
-    @Path("{userId}")
+    @Path("/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    fun loansByUser(@PathParam("userId") userId: String): List<Loan> {
-        TODO()
-    }
-
+    fun loansByUser(@PathParam("userId") userId: String): List<Loan> = loanService.getAllLoansByUser(userId)
 
 
 }

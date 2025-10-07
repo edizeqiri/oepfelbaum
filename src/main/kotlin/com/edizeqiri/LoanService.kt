@@ -8,9 +8,10 @@ import com.edizeqiri.entity.toLoanStatus
 import com.edizeqiri.repository.FinancingObjectRepository
 import com.edizeqiri.repository.LimitRepository
 import com.edizeqiri.repository.ProductRepository
+import io.quarkus.logging.Log
 import jakarta.enterprise.context.ApplicationScoped
 import java.nio.charset.StandardCharsets
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 
@@ -29,11 +30,15 @@ class LoanService(
 
 
         val financingObjects: List<FinancingObject> = financingObjectRepository.findAllByUserId(userId)
+        Log.info("fetched FOs: ${financingObjects.size}")
         var loans = mutableListOf<Loan>()
         financingObjects.forEach { financingObject ->
             val sum = sumParent(financingObject)
             val products = productRepository.findAllById(financingObject.products)
-            val limit = limitRepository.findById(financingObject.limit)
+            Log.info("fetched products: ${products.size}")
+            val limits = limitRepository.findById(financingObject.limit)
+            val limit = limits.first()
+            Log.info("fetched loan: ${limit}")
 
 
             products.forEach { product ->
@@ -51,25 +56,35 @@ class LoanService(
                         interestDue = product.interestDue.toString(),
                         isOverdue = product.isOverdue,
                         parentLoanId = financingObject.id.toString(),
-                        startDate = OffsetDateTime.from(product.startDate),
-                        endDate = OffsetDateTime.from(product.endDate),
-                        borrower = financingObject.owner.map { owner -> owner.name },
+                        startDate = product.startDate.atStartOfDay().atOffset(ZoneOffset.UTC),
+                        endDate = product.endDate?.atStartOfDay()?.atOffset(ZoneOffset.UTC),
+                        borrower = financingObject.owners.map { owner -> owner.name },
                         defaultSettlementAccountNumber = product.defaultSettlementAccountNumber,
                         paymentFrequency = limit.agreedAmortisationFrequency.toString(),
                         interestPaymentFrequency = product.interestPaymentFrequency.toString(),
                         collateral = listOf(
                             LoanCollateralInner(
                                 type = limit.toCollateralInnerType(),
-                                currentValue = limit.realSecurities.collateralValue.toString(),
-                                currencyCode = limit.realSecurities.currency.toString(),
-                                specification = limit.realSecurities.address,
-                                nextRevaluationDate = limit.realSecurities.nextRevaluationDate,
+                                currentValue = limit.realSecurities.first().collateralValue.toString(),
+                                currencyCode = limit.realSecurities.first().currency.toString(),
+                                specification = limit.realSecurities.first().address,
+                                nextRevaluationDate = limit.realSecurities.first().nextRevaluationDate,
                                 amortisationPaymentAmount = limit.amortisationAmountAnnual.toString()
                             )
                         )
                     )
                 )
             }
+
+            loans.add(
+                Loan(
+                    id = createUUID(financingObject, false, null).toString(),
+                    loanType = Loan.LoanType.PARENT_LOAN,
+                    outstandingAmount = sumParent(financingObject).toString()
+
+                )
+            )
+
         }
         return loans
     }

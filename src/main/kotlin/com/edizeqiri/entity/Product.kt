@@ -1,7 +1,7 @@
 package com.edizeqiri.entity
 
 import java.time.LocalDate
-import java.util.Currency
+import java.util.*
 
 data class Product(
     val id: Long,
@@ -11,7 +11,7 @@ data class Product(
     val currencyCode: Currency,
     val interestRate: Double,
     val startDate: LocalDate,
-    val endDate: LocalDate,
+    val endDate: LocalDate?,
     val productNumber: String,
     val defaultSettlementAccountNumber: String,
     val interestDue: Double,
@@ -19,10 +19,6 @@ data class Product(
     val interestPaymentFrequency: Int
 )
 
-enum class ProductTypes{
+enum class ProductTypes {
     FESTHYPOTHEK,
-}
-
-enum class ISO3 {
-
 }

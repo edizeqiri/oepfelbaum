@@ -1,11 +1,12 @@
 package com.edizeqiri.entity
 
 import com.edizeqiri.dto.Loan
+import com.fasterxml.jackson.annotation.JsonProperty
 
 data class FinancingObject(
 
     val id: Long,
-    val owner: List<Owner>,
+    val owners: List<Owner>,
     val limit: Long,
     val products: List<Long>,
     val status: Status
@@ -17,7 +18,9 @@ data class Owner(
 )
 
 enum class Status() {
+    @JsonProperty("inactive")
     INACTIVE,
+    @JsonProperty("active")
     ACTIVE
 }
 

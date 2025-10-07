@@ -17,6 +17,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-kotlin'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation 'io.quarkus:quarkus-arc'
+
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.0")
+
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
 }
@@ -56,16 +59,16 @@ openApiGenerate {
     modelPackage = "com.edizeqiri.dto"
 
     globalProperties = [
-            models: "",
-            apis: "false",
+            models         : "",
+            apis           : "false",
             supportingFiles: "false"
     ]
 
     configOptions = [
-            dateLibrary: "java8",
+            dateLibrary         : "java8",
             serializationLibrary: "jackson",
-            enumPropertyNaming: "UPPERCASE",
-            sourceFolder: "src/main/kotlin"
+            enumPropertyNaming  : "UPPERCASE",
+            sourceFolder        : "src/main/kotlin"
     ]
 }
 
