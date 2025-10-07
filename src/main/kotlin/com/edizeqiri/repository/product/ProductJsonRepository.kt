@@ -1,19 +1,21 @@
-package com.edizeqiri.repository
+package com.edizeqiri.repository.product
 
 import com.edizeqiri.entity.Product
+import com.edizeqiri.repository.LoanJsonRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
+
 @ApplicationScoped
-class ProductRepository(
+class ProductJsonRepository(
     val mapper: ObjectMapper
-) : LoanRepository<Product>() {
+) : LoanJsonRepository<Product>(), ProductRepository {
 
     @ConfigProperty(name = "repository.product")
-    override lateinit var file: String
+    override lateinit var filePath: String
 
     override var data: List<Product> = mutableListOf()
 
@@ -23,12 +25,11 @@ class ProductRepository(
         data = mapper.readValue(json)
     }
 
-
-    fun findAllById(id: List<Long>): List<Product> {
+    override fun findAllById(id: List<Long>): List<Product> {
         return data.filter { id.contains(it.id) }
     }
 
-    fun sum(id: List<Long>): Long {
+    override fun sum(id: List<Long>): Long {
         return data.filter { id.contains(it.id) }.sumOf { it.amount }
     }
 

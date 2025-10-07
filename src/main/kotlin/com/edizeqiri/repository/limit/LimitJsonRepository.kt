@@ -1,6 +1,7 @@
-package com.edizeqiri.repository
+package com.edizeqiri.repository.limit
 
 import com.edizeqiri.entity.Limit
+import com.edizeqiri.repository.LoanJsonRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import jakarta.annotation.PostConstruct
@@ -8,12 +9,12 @@ import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
 @ApplicationScoped
-class LimitRepository(
+class LimitJsonRepository(
     val mapper: ObjectMapper
-) : LoanRepository<Limit>() {
+) : LoanJsonRepository<Limit>(), LimitRepository {
 
     @ConfigProperty(name = "repository.limit")
-    override lateinit var file: String
+    override lateinit var filePath: String
 
     override var data: List<Limit> = mutableListOf()
 
@@ -25,7 +26,7 @@ class LimitRepository(
 
     }
 
-    fun findById(id: Long): List<Limit> {
-        return data.filter { id == it.id }
+    override fun findById(id: Long): Limit {
+        return data.first { id == it.id }
     }
 }

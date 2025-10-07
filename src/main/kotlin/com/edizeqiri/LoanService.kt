@@ -2,15 +2,13 @@ package com.edizeqiri
 
 import com.edizeqiri.dto.Loan
 import com.edizeqiri.dto.LoanCollateralInner
-import com.edizeqiri.entity.FinancingObject
-import com.edizeqiri.entity.toCollateralInnerType
-import com.edizeqiri.entity.toLoanStatus
-import com.edizeqiri.repository.FinancingObjectRepository
-import com.edizeqiri.repository.LimitRepository
-import com.edizeqiri.repository.ProductRepository
-import io.quarkus.logging.Log
+import com.edizeqiri.entity.*
+import com.edizeqiri.repository.financing.FinancingObjectRepository
+import com.edizeqiri.repository.limit.LimitRepository
+import com.edizeqiri.repository.product.ProductRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.*
 
@@ -18,70 +16,71 @@ import java.util.*
 @ApplicationScoped
 class LoanService(
     val financingObjectRepository: FinancingObjectRepository,
-    val productRepository: ProductRepository,
+    val productJsonRepository: ProductRepository,
     val limitRepository: LimitRepository
 ) {
+
+    //TODO(S3): earliest and latest start end from products in parent
+    //TODO(S4): OR case for overdue
+    //TODO(S5): Parent amortisationPaymentAmount=amortisationAmountAnnual/agreedAmortisationFrequency
+    //TODO(S6): parent earliest interestDue
+    //TODO(S7): done?
 
     /*
     1. Get all FO's
     2. Foreach get the product and limits to match Loan
      */
     fun getAllLoansByUser(userId: String): List<Loan> {
-
-
         val financingObjects: List<FinancingObject> = financingObjectRepository.findAllByUserId(userId)
-        Log.info("fetched FOs: ${financingObjects.size}")
         var loans = mutableListOf<Loan>()
+
+        //parent
         financingObjects.forEach { financingObject ->
-            val sum = sumParent(financingObject)
-            val products = productRepository.findAllById(financingObject.products)
-            Log.info("fetched products: ${products.size}")
-            val limits = limitRepository.findById(financingObject.limit)
-            val limit = limits.first()
-            Log.info("fetched loan: ${limit}")
 
+            val products = productJsonRepository.findAllById(financingObject.products)
+            val limit = limitRepository.findById(financingObject.limit)
 
-            products.forEach { product ->
-                loans.add(
-                    Loan(
-                        id = createUUID(financingObject, true, product.id).toString(),
-                        loanType = Loan.LoanType.CHILD_LOAN,
-                        name = product.name,
-                        contractNumber = limit.contractNumber,
-                        loanStatus = financingObject.status.toLoanStatus(),
-                        currencyCode = product.currencyCode.toString(),
-                        outstandingAmount = product.amount.toString(),
-                        creditLimit = limit.limitAmount.toString(),
-                        interestRate = product.interestRate.toString(),
-                        interestDue = product.interestDue.toString(),
-                        isOverdue = product.isOverdue,
-                        parentLoanId = financingObject.id.toString(),
-                        startDate = product.startDate.atStartOfDay().atOffset(ZoneOffset.UTC),
-                        endDate = product.endDate?.atStartOfDay()?.atOffset(ZoneOffset.UTC),
-                        borrower = financingObject.owners.map { owner -> owner.name },
-                        defaultSettlementAccountNumber = product.defaultSettlementAccountNumber,
-                        paymentFrequency = limit.agreedAmortisationFrequency.toString(),
-                        interestPaymentFrequency = product.interestPaymentFrequency.toString(),
-                        collateral = listOf(
-                            LoanCollateralInner(
-                                type = limit.toCollateralInnerType(),
-                                currentValue = limit.realSecurities.first().collateralValue.toString(),
-                                currencyCode = limit.realSecurities.first().currency.toString(),
-                                specification = limit.realSecurities.first().address,
-                                nextRevaluationDate = limit.realSecurities.first().nextRevaluationDate,
-                                amortisationPaymentAmount = limit.amortisationAmountAnnual.toString()
-                            )
-                        )
-                    )
+            val collateral =
+                LoanCollateralInner(
+                    type = limit.toCollateralInnerType(),
+                    currentValue = limit.realSecurities.first().collateralValue.toString(),
+                    currencyCode = limit.realSecurities.first().currency.toString(),
+                    specification = limit.realSecurities.first().address,
+                    nextRevaluationDate = limit.realSecurities.first().nextRevaluationDate,
                 )
+
+            var earliest = LocalDate.MAX
+            var latest = LocalDate.MIN
+            var isOverdue = false
+            var earliestInterestDue = LocalDate.MIN
+
+            // children
+            products.forEach { product ->
+
+                // earliest, latest
+                if (product.startDate < earliest) earliest = product.startDate
+                product.endDate?.let { if (it > latest) latest = it }
+
+                // isOverdue
+                isOverdue = isOverdue.or(product.isOverdue)
+
+
+                loans.add(createLoan(financingObject, product, limit, collateral))
             }
 
+            // add parent to list
             loans.add(
                 Loan(
                     id = createUUID(financingObject, false, null).toString(),
                     loanType = Loan.LoanType.PARENT_LOAN,
-                    outstandingAmount = sumParent(financingObject).toString()
-
+                    outstandingAmount = productJsonRepository.sum(financingObject.products).toString(),
+                    startDate = earliest.atStartOfDay().atOffset(ZoneOffset.UTC),
+                    endDate = latest.atStartOfDay().atOffset(ZoneOffset.UTC),
+                    isOverdue = isOverdue,
+                    paymentFrequency = limit.agreedAmortisationFrequency.toString(),
+                    collateral = listOf(
+                        collateral.copy(amortisationPaymentAmount = (limit.amortisationAmountAnnual / limit.agreedAmortisationFrequency).toString())
+                    )
                 )
             )
 
@@ -89,10 +88,32 @@ class LoanService(
         return loans
     }
 
-    fun sumParent(financingObject: FinancingObject): Long {
-        val products = financingObject.products
-        return productRepository.sum(products)
-    }
+
+    private fun createLoan(
+        financingObject: FinancingObject,
+        product: Product,
+        limit: Limit,
+        collateral: LoanCollateralInner
+    ): Loan = Loan(
+        id = createUUID(financingObject, true, product.id).toString(),
+        loanType = Loan.LoanType.CHILD_LOAN,
+        name = product.name,
+        contractNumber = limit.contractNumber,
+        loanStatus = financingObject.status.toLoanStatus(),
+        currencyCode = product.currencyCode.toString(),
+        outstandingAmount = product.amount.toString(),
+        creditLimit = limit.limitAmount.toString(),
+        interestRate = product.interestRate.toString(),
+        interestDue = product.interestDue.toString(),
+        isOverdue = product.isOverdue,
+        parentLoanId = financingObject.id.toString(),
+        startDate = product.startDate.atStartOfDay().atOffset(ZoneOffset.UTC),
+        endDate = product.endDate?.atStartOfDay()?.atOffset(ZoneOffset.UTC),
+        borrower = financingObject.owners.map { owner -> owner.name },
+        defaultSettlementAccountNumber = product.defaultSettlementAccountNumber,
+        interestPaymentFrequency = product.interestPaymentFrequency.toString(),
+        collateral = listOf(collateral)
+    )
 
     fun createUUID(financingObject: FinancingObject, child: Boolean, productId: Long?): UUID {
         var encoding = "${financingObject.id}|${financingObject.limit}"
