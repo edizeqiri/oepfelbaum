@@ -20,16 +20,6 @@ class LoanService(
     val limitRepository: LimitRepository
 ) {
 
-    //TODO(S3): earliest and latest start end from products in parent
-    //TODO(S4): OR case for overdue
-    //TODO(S5): Parent amortisationPaymentAmount=amortisationAmountAnnual/agreedAmortisationFrequency
-    //TODO(S6): parent earliest interestDue
-    //TODO(S7): done?
-
-    /*
-    1. Get all FO's
-    2. Foreach get the product and limits to match Loan
-     */
     fun getAllLoansByUser(userId: String): List<Loan> {
         val financingObjects: List<FinancingObject> = financingObjectRepository.findAllByUserId(userId)
         var loans = mutableListOf<Loan>()
@@ -82,7 +72,6 @@ class LoanService(
                     )
                 )
             )
-
         }
         return loans
     }

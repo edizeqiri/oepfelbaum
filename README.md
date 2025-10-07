@@ -25,6 +25,7 @@ A sample request is in: `src/main/openapi/loan.http`
 
 - I chose to use the JSON as mock data and did not mock the services or repositories. The tests are integration tests
   only and rely on the mock data.
+- I skipped authentication
 
 # Quarkus specifics below
 
