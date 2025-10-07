@@ -23,7 +23,7 @@ class LoanService(
 
     fun getAllLoansByUser(userId: String): List<Loan> {
         var financingObject: FinancingObject = try {
-            financingObjectRepository.findAllByUserId(userId)
+            financingObjectRepository.findByUserId(userId)
         } catch (e: NoSuchElementException) {
             Log.error("No user with the specified ID: $userId, $e")
             throw e
@@ -54,7 +54,6 @@ class LoanService(
 
             // isOverdue
             isOverdue = isOverdue.or(product.isOverdue)
-
 
             loans.add(createLoan(financingObject, product, limit, collateral))
         }

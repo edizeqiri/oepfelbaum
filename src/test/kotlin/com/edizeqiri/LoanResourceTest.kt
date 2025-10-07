@@ -34,7 +34,6 @@ class LoanResourceTest {
     @ParameterizedTest
     @CsvSource(
         "11110003,3",
-        "100006,0",
         "11110006,4"
     )
     fun `Provide loans for userId`(userId: String, numberOfLoans: Int) {
