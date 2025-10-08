@@ -1,5 +1,37 @@
 flowchart TD
-    A[LoanClient] -->|GET /service/v1/loansByUser/userId| B(LoanResource)
-    B --> C(LoanService)
-    C --> D(LoanRepository)
-    E(JSONLoanRepository) -->|Implements| D
+    subgraph API["API Layer"]
+        A[LoanClient]
+        B(LoanResource)
+    end
+
+    subgraph Service["Service Layer"]
+        C(LoanService)
+    end
+
+    subgraph Repository["Repository Layer"]
+        D[FinancingObjectRepository]
+        E[ProductRepository]
+        F[LimitRepository]
+    end
+
+    subgraph JSON["JSON Layer"]
+        G(FinancingObjectJsonRepository)
+        I(ProductJsonRepository)
+        H(LimitJsonRepository)
+        J(LoanJsonRepository)
+    end
+
+    A -->|calls| B
+    B -->|uses| C
+
+    C -->|queries| D
+    C -->|queries| E
+    C -->|queries| F
+
+    G -.->|implements| D
+    I -.->|implements| E
+    H -.->|implements| F
+
+    G -->|depends on| J
+    I -->|depends on| J
+    H -->|depends on| J
